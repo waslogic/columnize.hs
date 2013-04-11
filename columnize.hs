@@ -1,4 +1,8 @@
+-- An implementation of Columnize in Haskell
+module Columnize where
+
 import qualified Data.List as L
+import qualified Data.Tuple as T
 import Test.QuickCheck
 
 testWords = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "twentyone", "twentytwo", "twentythree", "twentyfour", "twentyfive", "twentysix", "twentyseven"]
@@ -11,45 +15,25 @@ groupBy n list
   | otherwise = x : groupBy n xs
   where (x, xs) = splitAt n list
 
+maxLength = maximum . map length
 
-compute xs = map (\x -> groupBy x xs) [1.. length xs]
+rows_and_colwidths_for_h n = rows_and_colwidths . rows_and_cols n
 
--- map (maximum . map length) $ L.transpose rows
--- where rows = groupBy 5 testWords
+rows_and_colwidths_for_v n = rows_and_colwidths . T.swap . rows_and_cols n
 
--- map (maximum . map length) $ L.transpose . groupBy 5 $ testWords
+rows_and_colwidths (rows, cols) = (rows, colwidths)
+  where colwidths = map maxLength cols
 
-prop_numOfGroups n list = (n >= 0) ==> (L.genericLength $ groupBy n list) == nrows (fromIntegral n) list
-  where nrows _ [] = 0
-        nrows 0 _ = 0
-        nrows n list = floor $ ((L.genericLength list) + n - 1) / n
-
-prop_length_of_inner_lists n list =
-  (n > 0) ==>
-  not (null list) ==>
-    (all (==n) $ map length full_pages)
-  &&
-    (length last_page == remainder)
-  where pages = groupBy n list
-        full_pages = init pages
-        last_page = last pages
-        remainder = if r == 0 then n else r
-        r = (length list) `mod` n
-
-prop_flattened_groups_is_list n list = (n > 0) ==> (concat $ groupBy n list) == list
-
-rows_and_cols_by_size n list = (rows,cols)
+rows_and_cols n list = (rows, cols)
   where rows = groupBy n list
         cols = L.transpose rows
 
--- NOTE: Data.Tuple.swap :: (a,b) -> (b,a)
-
+-- TODO: start here with figuring out how to select the first size where sum colwidths <= display_width
 compute_rows_and_colwidths display_width list
-  | biggest_atom >= display_width = (groupBy 1 list, [biggest_atom])
-  | otherwise = ([list], [sum cell_widths])
-  where cell_widths = map length list
-        biggest_atom = maximum cell_widths
-        sizes = [n, n-1..1]
+  | maxLength list >= display_width = rows_and_colwidths_for_h 1 list
+  | otherwise = rows_and_colwidths_for_h (length list) list
+  where sizes = [n, n-1..1]
         n = length list
 
 -- NOTE: [(rs, cws) | s <- sizes, let (rs, cs) = rows_and_cols_by_size s testWords, let cws = map (maximum . map length) cs, (sum cws) <= 80]
+
