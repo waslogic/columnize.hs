@@ -28,16 +28,14 @@ rows_and_cols n list = (rows, cols)
   where rows = groupBy n list
         cols = L.transpose rows
 
--- TODO: start here
 compute_rows_and_colwidths display_width list
-  | maxLength list >= display_width = default_rs_cws
-  | otherwise = best_fit_or_default $ find_best_fit
-  where default_rs_cws = rows_and_colwidths_for_h 1 list
-        best_fit_or_default (Just bf) = bf
-        best_fit_or_default Nothing = ([["this"]], [4]) -- NOTE: this will never happen, so I should probably use head + filter rather than find
-        find_best_fit = L.find fits_width $ map to_size sizes
+  | maxLength list >= display_width = rows_and_colwidths_for_h 1 list
+  | otherwise = find_best_fit
+  where find_best_fit = head $ filter fits_width $ map to_size sizes
         fits_width (rs,cws) = sum cws <= display_width
         to_size s = rows_and_colwidths_for_h s list
         sizes = [n, n-1..1]
         n = length list
 
+-- TODO: is it possible to have a function def for compute_rows_and_colwidths Int -> [Num] which calls compute_rows_and_colwidths display_width (map show list)
+-- TODO: make stuff print to screen
