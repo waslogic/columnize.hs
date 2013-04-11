@@ -28,12 +28,16 @@ rows_and_cols n list = (rows, cols)
   where rows = groupBy n list
         cols = L.transpose rows
 
--- TODO: start here with figuring out how to select the first size where sum colwidths <= display_width
+-- TODO: start here
 compute_rows_and_colwidths display_width list
-  | maxLength list >= display_width = rows_and_colwidths_for_h 1 list
-  | otherwise = rows_and_colwidths_for_h (length list) list
-  where sizes = [n, n-1..1]
+  | maxLength list >= display_width = default_rs_cws
+  | otherwise = best_fit_or_default $ find_best_fit
+  where default_rs_cws = rows_and_colwidths_for_h 1 list
+        best_fit_or_default (Just bf) = bf
+        best_fit_or_default Nothing = ([["this"]], [4]) -- NOTE: this will never happen, so I should probably use head + filter rather than find
+        find_best_fit = L.find fits_width $ map to_size sizes
+        fits_width (rs,cws) = sum cws <= display_width
+        to_size s = rows_and_colwidths_for_h s list
+        sizes = [n, n-1..1]
         n = length list
-
--- NOTE: [(rs, cws) | s <- sizes, let (rs, cs) = rows_and_cols_by_size s testWords, let cws = map (maximum . map length) cs, (sum cws) <= 80]
 
